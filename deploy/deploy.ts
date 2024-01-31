@@ -1,31 +1,51 @@
 import { Address, Deployer } from "../web3webdeploy/types";
-import { deployCounter } from "./counters/Counter";
-import { deployProxyCounter } from "./counters/ProxyCounter";
+import { zeroAddress } from "viem";
+import { readFile } from "fs/promises";
+import path from "path";
 
-export interface DeploymentSettings {
-  startingNumber: bigint;
+export interface ReverseENSDeploymentSettings {
+  chainId: bigint;
 }
 
-export interface Deployment {
-  counter: Address;
-  proxyCounter: Address;
+export interface ReverseENSDeployment {
+  reverseRegistrar: Address;
 }
 
 export async function deploy(
   deployer: Deployer,
-  settings?: DeploymentSettings
-): Promise<Deployment> {
-  const counter = await deployCounter(deployer);
-  const proxyCounter = await deployProxyCounter(deployer, counter);
-  await deployer.execute({
-    id: "InitialCounterNumber",
-    abi: "Counter",
-    to: counter,
-    function: "setNumber",
-    args: [settings?.startingNumber ?? BigInt(3)],
-  });
+  settings?: ReverseENSDeploymentSettings
+): Promise<ReverseENSDeployment> {
+  const chainId = settings?.chainId ?? deployer.settings.defaultChainId;
+  const networkName = chainIdToName(chainId);
+  if (!networkName) {
+    return {
+      reverseRegistrar: zeroAddress,
+    };
+  }
+
+  const json = await readFile(
+    path.join(
+      "..",
+      "lib",
+      "ens-contracts",
+      "deployments",
+      networkName,
+      "ReverseRegistrar.json"
+    ),
+    { encoding: "utf-8" }
+  );
+  const info = JSON.parse(json) as { address: Address };
   return {
-    counter: counter,
-    proxyCounter: proxyCounter,
+    reverseRegistrar: info.address,
   };
+}
+
+function chainIdToName(chainId: bigint): string | undefined {
+  // Could scan the deployment dir until a folder with a matching chainId is found
+  switch (chainId) {
+    case BigInt(1):
+      return "mainnet";
+    case BigInt(11155111):
+      return "sepolia";
+  }
 }
