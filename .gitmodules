@@ -4,6 +4,3 @@
 [submodule "web3webdeploy"]
 	path = web3webdeploy
 	url = https://github.com/Plopmenz/web3webdeploy
-[submodule "lib/ens-contracts"]
-	path = lib/ens-contracts
-	url = https://github.com/ensdomains/ens-contracts
